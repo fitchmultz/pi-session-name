@@ -36,6 +36,7 @@ const context = extension.handlers.get("context")?.[0] as
 	| undefined;
 assert.ok(context);
 assert.match(tool.promptGuidelines?.join("\n") ?? "", /must call name_session/);
+assert.match(tool.promptGuidelines?.join("\n") ?? "", /avoid spaces/);
 
 const userMessage = { role: "user", content: "task", timestamp: 1 };
 const unnamedContext = await context({ messages: [userMessage] });

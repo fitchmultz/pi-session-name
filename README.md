@@ -25,6 +25,7 @@ Work in Pi as usual. The agent will:
 - name an unnamed session after it understands the main task
 - keep the current name for small follow-up requests
 - choose a new name when the main task changes
+- use short names with hyphens instead of spaces, such as `fix-login-flow`
 
 You can still choose a name yourself at any time:
 
