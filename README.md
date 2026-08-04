@@ -34,7 +34,7 @@ You can still choose a name yourself at any time:
 /name refactor-login-flow
 ```
 
-If a name contains `coordinator`, the agent will keep `coordinator` in every future name. If you tell the agent it is no longer the coordinator, Pi will ask you to confirm before removing that word. You can also rename the session yourself with `/name`.
+Names containing `coordinator` or a numbered identifier such as `subagent-1` are protected. The agent will keep the same role or exact identifier in every future name. If you tell the agent it no longer applies, Pi will ask you to confirm before removing it. You can also rename the session yourself with `/name`.
 
 Your session names appear when you enter `/resume`.
 

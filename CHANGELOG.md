@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Protects exact numbered subagent identifiers such as `subagent-1` from automatic removal or replacement.
+
 ## v0.2.0 - 2026-08-03
 
 - Keeps automatically chosen session names broad and stable across follow-ups, phases, and temporary side tasks.

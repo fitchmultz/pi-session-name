@@ -39,6 +39,7 @@ assert.ok(context);
 assert.match(tool.promptGuidelines?.join("\n") ?? "", /must call name_session/);
 assert.match(tool.promptGuidelines?.join("\n") ?? "", /overall purpose/);
 assert.match(tool.promptGuidelines?.join("\n") ?? "", /When unsure, keep the current name/);
+assert.match(tool.promptGuidelines?.join("\n") ?? "", /exact numbered subagent identifier/);
 assert.match(tool.promptGuidelines?.join("\n") ?? "", /require the user to confirm/);
 assert.match(tool.promptGuidelines?.join("\n") ?? "", /avoid spaces/);
 
@@ -149,7 +150,7 @@ await assert.rejects(
 		undefined,
 		removalContext(false),
 	),
-	/not confirmed by the user/,
+	/Protected name change was not confirmed by the user/,
 );
 assert.equal(currentName, "release-coordinator");
 await tool.execute(
@@ -162,13 +163,55 @@ await tool.execute(
 assert.equal(confirmations, 2);
 assert.equal(currentName, "release-planning");
 
+currentName = "subagent-1-subagent-2";
+await assert.rejects(
+	tool.execute(
+		"remove-one-of-multiple-subagent-identifiers",
+		{ name: "subagent-1" },
+		new AbortController().signal,
+		undefined,
+		{} as never,
+	),
+	/protected role or identifier/,
+);
+assert.equal(currentName, "subagent-1-subagent-2");
+currentName = "release-planning";
+
 await tool.execute(
-	"restore-coordinator",
-	{ name: "release-coordinator" },
+	"set-subagent-identifier",
+	{ name: "release-Subagent-1" },
 	new AbortController().signal,
 	undefined,
 	{} as never,
 );
+await tool.execute(
+	"keep-subagent-identifier",
+	{ name: "auth-subagent-1" },
+	new AbortController().signal,
+	undefined,
+	{} as never,
+);
+await assert.rejects(
+	tool.execute(
+		"change-subagent-identifier-without-ui",
+		{ name: "auth-subagent-10" },
+		new AbortController().signal,
+		undefined,
+		{} as never,
+	),
+	/protected role or identifier/,
+);
+assert.equal(currentName, "auth-subagent-1");
+await tool.execute(
+	"confirm-subagent-identifier-change",
+	{ name: "auth-subagent-10" },
+	new AbortController().signal,
+	undefined,
+	removalContext(true),
+);
+assert.equal(confirmations, 3);
+assert.equal(currentName, "auth-subagent-10");
+
 const abortController = new AbortController();
 const abortContext = {
 	hasUI: true,
@@ -182,15 +225,15 @@ const abortContext = {
 } as never;
 await assert.rejects(
 	tool.execute(
-		"abort-coordinator-removal",
+		"abort-subagent-identifier-removal",
 		{ name: "release-planning" },
 		abortController.signal,
 		undefined,
 		abortContext,
 	),
-	/Coordinator removal was cancelled/,
+	/Protected name change was cancelled/,
 );
-assert.equal(currentName, "release-coordinator");
+assert.equal(currentName, "auth-subagent-10");
 
 await assert.rejects(
 	tool.execute(
