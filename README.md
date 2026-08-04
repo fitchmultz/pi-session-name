@@ -2,7 +2,7 @@
 
 Make your [Pi](https://github.com/earendil-works/pi) sessions easier to find and resume later.
 
-This extension asks the agent to give each session a short, useful name. The agent can update the name when the main task changes, while leaving it alone for small follow-up requests.
+This extension asks the agent to give each session a short, useful name. Names stay broad and stable so they remain useful throughout the work.
 
 ## Install
 
@@ -22,16 +22,19 @@ No other setup is required.
 
 Work in Pi as usual. The agent will:
 
-- name an unnamed session after it understands the main task
-- keep the current name for small follow-up requests
-- choose a new name when the main task changes
+- name an unnamed session after it understands the overall purpose
+- choose a broad name for the whole job, not the current step
+- keep the current name through follow-ups, phases, and temporary side tasks
+- choose a new name only when the overall purpose clearly and permanently changes
 - use short names with hyphens instead of spaces, such as `fix-login-flow`
 
 You can still choose a name yourself at any time:
 
 ```text
-/name Refactor login flow
+/name refactor-login-flow
 ```
+
+If a name contains `coordinator`, the agent will keep `coordinator` in every future name. If you tell the agent it is no longer the coordinator, Pi will ask you to confirm before removing that word. You can also rename the session yourself with `/name`.
 
 Your session names appear when you enter `/resume`.
 

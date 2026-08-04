@@ -28,6 +28,7 @@ assert.equal(loaded.extensions.length, 1);
 const extension = loaded.extensions[0];
 const tool = extension.tools.get("name_session")?.definition;
 assert.ok(tool);
+assert.equal(tool.executionMode, "sequential");
 type ContextResult = {
 	messages: Array<{ role?: string; content?: unknown }>;
 };
@@ -36,6 +37,9 @@ const context = extension.handlers.get("context")?.[0] as
 	| undefined;
 assert.ok(context);
 assert.match(tool.promptGuidelines?.join("\n") ?? "", /must call name_session/);
+assert.match(tool.promptGuidelines?.join("\n") ?? "", /overall purpose/);
+assert.match(tool.promptGuidelines?.join("\n") ?? "", /When unsure, keep the current name/);
+assert.match(tool.promptGuidelines?.join("\n") ?? "", /require the user to confirm/);
 assert.match(tool.promptGuidelines?.join("\n") ?? "", /avoid spaces/);
 
 const userMessage = { role: "user", content: "task", timestamp: 1 };
@@ -63,12 +67,25 @@ await tool.execute(
 );
 assert.deepEqual(names, ["Fix auth refresh"]);
 
-await tool.execute(
-	"normalized-same",
-	{ name: "Fix\nauth refresh" },
-	new AbortController().signal,
-	undefined,
-	{} as never,
+await assert.rejects(
+	tool.execute(
+		"control-character",
+		{ name: "Fix\nauth refresh" },
+		new AbortController().signal,
+		undefined,
+		{} as never,
+	),
+	/control or formatting characters/,
+);
+await assert.rejects(
+	tool.execute(
+		"format-character",
+		{ name: "auth-\u200Bcoordinator" },
+		new AbortController().signal,
+		undefined,
+		{} as never,
+	),
+	/control or formatting characters/,
 );
 assert.deepEqual(names, ["Fix auth refresh"]);
 
@@ -93,6 +110,87 @@ assert.match(
 	String((await context({ messages: followUpMessages }))?.messages[0]?.content),
 	/"currentName":"Ship auth migration"/,
 );
+
+await tool.execute(
+	"coordinator",
+	{ name: "release-coordinator" },
+	new AbortController().signal,
+	undefined,
+	{} as never,
+);
+await assert.rejects(
+	tool.execute(
+		"remove-coordinator-without-ui",
+		{ name: "release-planning" },
+		new AbortController().signal,
+		undefined,
+		{} as never,
+	),
+	/ask the user to rename it with \/name/,
+);
+assert.equal(currentName, "release-coordinator");
+let confirmations = 0;
+const removalContext = (confirmed: boolean) =>
+	({
+		hasUI: true,
+		ui: {
+			confirm: async (_title: string, message: string) => {
+				confirmations++;
+				assert.doesNotMatch(message, /release-coordinator/);
+				return confirmed;
+			},
+		},
+	}) as never;
+await assert.rejects(
+	tool.execute(
+		"decline-coordinator-removal",
+		{ name: "release-planning" },
+		new AbortController().signal,
+		undefined,
+		removalContext(false),
+	),
+	/not confirmed by the user/,
+);
+assert.equal(currentName, "release-coordinator");
+await tool.execute(
+	"confirm-coordinator-removal",
+	{ name: "release-planning" },
+	new AbortController().signal,
+	undefined,
+	removalContext(true),
+);
+assert.equal(confirmations, 2);
+assert.equal(currentName, "release-planning");
+
+await tool.execute(
+	"restore-coordinator",
+	{ name: "release-coordinator" },
+	new AbortController().signal,
+	undefined,
+	{} as never,
+);
+const abortController = new AbortController();
+const abortContext = {
+	hasUI: true,
+	ui: {
+		confirm: async (_title: string, _message: string, options: { signal?: AbortSignal }) => {
+			assert.equal(options.signal, abortController.signal);
+			abortController.abort();
+			return true;
+		},
+	},
+} as never;
+await assert.rejects(
+	tool.execute(
+		"abort-coordinator-removal",
+		{ name: "release-planning" },
+		abortController.signal,
+		undefined,
+		abortContext,
+	),
+	/Coordinator removal was cancelled/,
+);
+assert.equal(currentName, "release-coordinator");
 
 await assert.rejects(
 	tool.execute(
